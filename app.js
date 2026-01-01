@@ -769,6 +769,67 @@ const sidePreviewFarRight = document.getElementById('side-preview-far-right');
 const previewStrip = document.querySelector('.preview-strip');
 const canvasWrapper = document.getElementById('canvas-wrapper');
 
+// Viewport state for preview pan/zoom (not persisted)
+const viewport = {
+    zoom: 1.0,
+    panX: 0,
+    panY: 0,
+    minZoom: 0.25,
+    maxZoom: 4.0
+};
+
+const canvasArea = document.querySelector('.canvas-area');
+
+function resetViewport() {
+    viewport.zoom = 1.0;
+    viewport.panX = 0;
+    viewport.panY = 0;
+    applyViewportTransform();
+}
+
+function applyViewportTransform() {
+    // Apply transform to the entire preview strip (all canvases)
+    previewStrip.style.transform = `scale(${viewport.zoom}) translate(${viewport.panX / viewport.zoom}px, ${viewport.panY / viewport.zoom}px)`;
+    previewStrip.style.transformOrigin = 'center center';
+
+    const zoomLevel = document.getElementById('zoom-level');
+    if (zoomLevel) {
+        zoomLevel.textContent = Math.round(viewport.zoom * 100) + '%';
+    }
+
+    // Toggle cursor class on canvas area
+    canvasArea.classList.toggle('zoomed', viewport.zoom !== 1.0);
+}
+
+function zoomToPoint(delta, clientX, clientY) {
+    const rect = canvasArea.getBoundingClientRect();
+
+    // Smoother zoom with smaller steps for pinch gesture
+    const zoomFactor = delta > 0 ? 0.97 : 1.03;
+    const newZoom = Math.max(viewport.minZoom, Math.min(viewport.maxZoom, viewport.zoom * zoomFactor));
+
+    if (newZoom === viewport.zoom) return;
+
+    // Focal point zoom - keep cursor position stationary
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const focalX = clientX - centerX;
+    const focalY = clientY - centerY;
+
+    const scaleDelta = newZoom / viewport.zoom;
+    viewport.panX = focalX - (focalX - viewport.panX) * scaleDelta;
+    viewport.panY = focalY - (focalY - viewport.panY) * scaleDelta;
+
+    viewport.zoom = newZoom;
+    applyViewportTransform();
+}
+
+function panViewport(deltaX, deltaY) {
+    viewport.panX -= deltaX;
+    viewport.panY -= deltaY;
+    applyViewportTransform();
+}
+
 let isSliding = false;
 let skipSidePreviewRender = false;  // Flag to skip re-rendering side previews after pre-render
 
@@ -776,9 +837,24 @@ let skipSidePreviewRender = false;  // Flag to skip re-rendering side previews a
 let swipeAccumulator = 0;
 const SWIPE_THRESHOLD = 50; // Minimum accumulated delta to trigger navigation
 
-// Prevent browser back/forward gesture on the entire canvas area
-canvasWrapper.addEventListener('wheel', (e) => {
-    // Prevent horizontal scroll from triggering browser back/forward
+// Native macOS gestures: pinch-to-zoom and two-finger pan
+canvasArea.addEventListener('wheel', (e) => {
+    // Pinch-to-zoom on macOS trackpad (sends ctrlKey + deltaY)
+    if (e.ctrlKey) {
+        e.preventDefault();
+        zoomToPoint(e.deltaY, e.clientX, e.clientY);
+        return;
+    }
+
+    // When zoomed in, use two-finger scroll for panning
+    if (viewport.zoom !== 1.0) {
+        e.preventDefault();
+        e.stopPropagation();
+        panViewport(e.deltaX, e.deltaY);
+        return;
+    }
+
+    // At 100% zoom: allow horizontal swipe for carousel, prevent browser gestures
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
         e.preventDefault();
     }
@@ -812,6 +888,19 @@ previewStrip.addEventListener('wheel', (e) => {
         swipeAccumulator = 0;
     }
 }, { passive: false });
+
+// Zoom controls
+document.getElementById('zoom-fit').addEventListener('click', resetViewport);
+document.getElementById('zoom-reset').addEventListener('click', resetViewport);
+document.getElementById('zoom-in').addEventListener('click', () => {
+    const rect = canvasArea.getBoundingClientRect();
+    zoomToPoint(-100, rect.left + rect.width / 2, rect.top + rect.height / 2);
+});
+document.getElementById('zoom-out').addEventListener('click', () => {
+    const rect = canvasArea.getBoundingClientRect();
+    zoomToPoint(100, rect.left + rect.width / 2, rect.top + rect.height / 2);
+});
+
 let suppressSwitchModelUpdate = false;  // Flag to suppress updateCanvas from switchPhoneModel
 const fileInput = document.getElementById('file-input');
 const screenshotList = document.getElementById('screenshot-list');
@@ -4288,6 +4377,7 @@ function updateScreenshotList() {
 
             // Normal selection
             state.selectedIndex = index;
+            resetViewport();  // Reset zoom/pan when switching screenshots
             updateScreenshotList();
             // Sync all UI with current screenshot's settings
             syncUIWithState();
@@ -4739,6 +4829,7 @@ function updateSidePreviews() {
 
 function slideToScreenshot(newIndex, direction) {
     isSliding = true;
+    resetViewport();  // Reset zoom/pan when switching screenshots
     previewStrip.classList.add('sliding');
 
     const dims = getCanvasDimensions();
@@ -4792,7 +4883,7 @@ function slideToScreenshot(newIndex, direction) {
 
         // Disable transition temporarily for instant reset
         previewStrip.style.transition = 'none';
-        previewStrip.style.transform = 'translateX(0)';
+        applyViewportTransform();  // Reset to viewport state (zoom=1, pan=0 after resetViewport)
 
         // Suppress updateCanvas calls from switchPhoneModel during sync
         window.suppressSwitchModelUpdate = true;
