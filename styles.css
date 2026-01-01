@@ -754,7 +754,14 @@ input[type="range"]::-webkit-slider-thumb {
     align-items: center;
     justify-content: center;
     padding: 40px;
-    background: var(--bg-primary);
+    /* Modern dot grid pattern */
+    --dot-color: rgba(255, 255, 255, 0.15);
+    --dot-size: 1px;
+    --dot-space: 24px;
+    background-color: #0a0a0a;
+    background-image: radial-gradient(circle, var(--dot-color) var(--dot-size), transparent var(--dot-size));
+    background-size: var(--dot-space) var(--dot-space);
+    background-position: center center;
     overflow: hidden;
     position: relative;
 }
