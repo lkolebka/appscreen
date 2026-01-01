@@ -80,7 +80,10 @@ const state = {
             subheadlineUnderline: false,
             subheadlineStrikethrough: false,
             subheadlineColor: '#ffffff',
-            subheadlineOpacity: 70
+            subheadlineOpacity: 70,
+            subheadlineGap: 20,
+            subheadlineLineHeight: 140,
+            subheadlinePadding: 8
         }
     }
 };
@@ -162,11 +165,29 @@ function setCurrentScreenshotAsDefault() {
 
 // Language flags mapping
 const languageFlags = {
+    // Major languages
     'en': '🇺🇸', 'en-gb': '🇬🇧', 'de': '🇩🇪', 'fr': '🇫🇷', 'es': '🇪🇸',
-    'it': '🇮🇹', 'pt': '🇵🇹', 'pt-br': '🇧🇷', 'nl': '🇳🇱', 'ru': '🇷🇺',
-    'ja': '🇯🇵', 'ko': '🇰🇷', 'zh': '🇨🇳', 'zh-tw': '🇹🇼', 'ar': '🇸🇦',
-    'hi': '🇮🇳', 'tr': '🇹🇷', 'pl': '🇵🇱', 'sv': '🇸🇪', 'da': '🇩🇰',
-    'no': '🇳🇴', 'fi': '🇫🇮', 'th': '🇹🇭', 'vi': '🇻🇳', 'id': '🇮🇩'
+    'it': '🇮🇹', 'pt': '🇵🇹', 'pt-pt': '🇵🇹', 'pt-br': '🇧🇷', 'nl': '🇳🇱', 'ru': '🇷🇺',
+    'ja': '🇯🇵', 'ko': '🇰🇷', 'ar': '🇸🇦',
+    // Chinese variants
+    'zh-hans': '🇨🇳', 'zh-hant': '🇹🇼',
+    // South/Southeast Asian
+    'hi': '🇮🇳', 'th': '🇹🇭', 'vi': '🇻🇳', 'id': '🇮🇩', 'ms': '🇲🇾', 'fil': '🇵🇭',
+    // Indian languages
+    'bn': '🇧🇩', 'ta': '🇮🇳', 'te': '🇮🇳', 'mr': '🇮🇳', 'gu': '🇮🇳',
+    'kn': '🇮🇳', 'ml': '🇮🇳', 'pa': '🇮🇳',
+    // Middle Eastern
+    'he': '🇮🇱', 'fa': '🇮🇷',
+    // Eastern European
+    'tr': '🇹🇷', 'pl': '🇵🇱', 'uk': '🇺🇦', 'cs': '🇨🇿', 'el': '🇬🇷',
+    'ro': '🇷🇴', 'hu': '🇭🇺', 'bg': '🇧🇬', 'sr': '🇷🇸', 'hr': '🇭🇷',
+    'sk': '🇸🇰', 'sl': '🇸🇮', 'lt': '🇱🇹', 'lv': '🇱🇻', 'et': '🇪🇪',
+    // Nordic
+    'sv': '🇸🇪', 'da': '🇩🇰', 'no': '🇳🇴', 'nb': '🇳🇴', 'fi': '🇫🇮',
+    // Other European
+    'ca': '🇪🇸',
+    // African
+    'sw': '🇹🇿', 'af': '🇿🇦'
 };
 
 // Google Fonts configuration
@@ -1596,7 +1617,10 @@ function resetStateToDefaults() {
             subheadlineUnderline: false,
             subheadlineStrikethrough: false,
             subheadlineColor: '#ffffff',
-            subheadlineOpacity: 70
+            subheadlineOpacity: 70,
+            subheadlineGap: 20,
+            subheadlineLineHeight: 140,
+            subheadlinePadding: 8
         }
     };
 }
@@ -1792,6 +1816,12 @@ function syncUIWithState() {
     document.getElementById('subheadline-color').value = txt.subheadlineColor;
     document.getElementById('subheadline-opacity').value = txt.subheadlineOpacity;
     document.getElementById('subheadline-opacity-value').textContent = formatValue(txt.subheadlineOpacity) + '%';
+    document.getElementById('subheadline-gap').value = txt.subheadlineGap ?? 20;
+    document.getElementById('subheadline-gap-value').textContent = formatValue(txt.subheadlineGap ?? 20) + '%';
+    document.getElementById('subheadline-line-height').value = txt.subheadlineLineHeight ?? 140;
+    document.getElementById('subheadline-line-height-value').textContent = formatValue(txt.subheadlineLineHeight ?? 140) + '%';
+    document.getElementById('subheadline-padding').value = txt.subheadlinePadding ?? 8;
+    document.getElementById('subheadline-padding-value').textContent = formatValue(txt.subheadlinePadding ?? 8) + '%';
     document.getElementById('subheadline-weight').value = txt.subheadlineWeight || '400';
     // Sync subheadline style buttons
     document.querySelectorAll('#subheadline-style button').forEach(btn => {
@@ -2702,6 +2732,27 @@ function setupEventListeners() {
         updateCanvas();
     });
 
+    document.getElementById('subheadline-gap').addEventListener('input', (e) => {
+        const value = parseInt(e.target.value) || 20;
+        setTextValue('subheadlineGap', value);
+        document.getElementById('subheadline-gap-value').textContent = formatValue(value) + '%';
+        updateCanvas();
+    });
+
+    document.getElementById('subheadline-line-height').addEventListener('input', (e) => {
+        const value = parseInt(e.target.value) || 140;
+        setTextValue('subheadlineLineHeight', value);
+        document.getElementById('subheadline-line-height-value').textContent = formatValue(value) + '%';
+        updateCanvas();
+    });
+
+    document.getElementById('subheadline-padding').addEventListener('input', (e) => {
+        const value = parseInt(e.target.value) || 8;
+        setTextValue('subheadlinePadding', value);
+        document.getElementById('subheadline-padding-value').textContent = formatValue(value) + '%';
+        updateCanvas();
+    });
+
     // Subheadline weight
     document.getElementById('subheadline-weight').addEventListener('change', (e) => {
         setTextValue('subheadlineWeight', e.target.value);
@@ -3101,13 +3152,30 @@ function updateSubheadlineLanguageUI() {
 let currentTranslateTarget = null;
 
 const languageNames = {
-    'en': 'English (US)', 'en-gb': 'English (UK)', 'de': 'German', 'fr': 'French', 
-    'es': 'Spanish', 'it': 'Italian', 'pt': 'Portuguese', 'pt-br': 'Portuguese (BR)',
-    'nl': 'Dutch', 'ru': 'Russian', 'ja': 'Japanese', 'ko': 'Korean',
-    'zh': 'Chinese (Simplified)', 'zh-tw': 'Chinese (Traditional)', 'ar': 'Arabic',
-    'hi': 'Hindi', 'tr': 'Turkish', 'pl': 'Polish', 'sv': 'Swedish',
-    'da': 'Danish', 'no': 'Norwegian', 'fi': 'Finnish', 'th': 'Thai',
-    'vi': 'Vietnamese', 'id': 'Indonesian'
+    // Major languages
+    'en': 'English', 'en-gb': 'English (UK)', 'de': 'German', 'fr': 'French',
+    'es': 'Spanish', 'it': 'Italian', 'pt': 'Portuguese', 'pt-pt': 'Portuguese (PT)', 'pt-br': 'Portuguese (BR)',
+    'nl': 'Dutch', 'ru': 'Russian', 'ja': 'Japanese', 'ko': 'Korean', 'ar': 'Arabic',
+    // Chinese variants
+    'zh-hans': 'Chinese (Simplified)', 'zh-hant': 'Chinese (Traditional)',
+    // South/Southeast Asian
+    'hi': 'Hindi', 'th': 'Thai', 'vi': 'Vietnamese', 'id': 'Indonesian',
+    'ms': 'Malay', 'fil': 'Filipino',
+    // Indian languages
+    'bn': 'Bengali', 'ta': 'Tamil', 'te': 'Telugu', 'mr': 'Marathi',
+    'gu': 'Gujarati', 'kn': 'Kannada', 'ml': 'Malayalam', 'pa': 'Punjabi',
+    // Middle Eastern
+    'he': 'Hebrew', 'fa': 'Persian',
+    // Eastern European
+    'tr': 'Turkish', 'pl': 'Polish', 'uk': 'Ukrainian', 'cs': 'Czech', 'el': 'Greek',
+    'ro': 'Romanian', 'hu': 'Hungarian', 'bg': 'Bulgarian', 'sr': 'Serbian', 'hr': 'Croatian',
+    'sk': 'Slovak', 'sl': 'Slovenian', 'lt': 'Lithuanian', 'lv': 'Latvian', 'et': 'Estonian',
+    // Nordic
+    'sv': 'Swedish', 'da': 'Danish', 'no': 'Norwegian', 'nb': 'Norwegian Bokmål', 'fi': 'Finnish',
+    // Other European
+    'ca': 'Catalan',
+    // African
+    'sw': 'Swahili', 'af': 'Afrikaans'
 };
 
 function openTranslateModal(target) {
@@ -4119,6 +4187,12 @@ function updateTextUI(text) {
     document.getElementById('subheadline-color').value = text.subheadlineColor;
     document.getElementById('subheadline-opacity').value = text.subheadlineOpacity;
     document.getElementById('subheadline-opacity-value').textContent = formatValue(text.subheadlineOpacity) + '%';
+    document.getElementById('subheadline-gap').value = text.subheadlineGap ?? 20;
+    document.getElementById('subheadline-gap-value').textContent = formatValue(text.subheadlineGap ?? 20) + '%';
+    document.getElementById('subheadline-line-height').value = text.subheadlineLineHeight ?? 140;
+    document.getElementById('subheadline-line-height-value').textContent = formatValue(text.subheadlineLineHeight ?? 140) + '%';
+    document.getElementById('subheadline-padding').value = text.subheadlinePadding ?? 8;
+    document.getElementById('subheadline-padding-value').textContent = formatValue(text.subheadlinePadding ?? 8) + '%';
     document.getElementById('subheadline-weight').value = text.subheadlineWeight || '400';
     // Sync subheadline style buttons
     document.querySelectorAll('#subheadline-style button').forEach(btn => {
@@ -5223,9 +5297,9 @@ function drawTextToContext(context, dims, txt) {
         });
 
         // Track where subheadline should start (below the bottom edge of headline)
-        // The gap between headline and subheadline should be (lineHeight - fontSize)
-        // This is the "extra" spacing beyond the text itself
-        const gap = lineHeight - txt.headlineSize;
+        // Use configurable gap (default 20% of headline size)
+        const gapPercent = txt.subheadlineGap ?? 20;
+        const gap = txt.headlineSize * (gapPercent / 100);
         if (txt.position === 'top') {
             // For top: lastLineY is top of last line, add fontSize to get bottom, then add gap
             currentY = lastLineY + txt.headlineSize + gap;
@@ -5242,8 +5316,13 @@ function drawTextToContext(context, dims, txt) {
         context.font = `${subFontStyle} ${subWeight} ${txt.subheadlineSize}px ${txt.subheadlineFont || txt.headlineFont}`;
         context.fillStyle = hexToRgba(txt.subheadlineColor, txt.subheadlineOpacity / 100);
 
-        const lines = wrapText(context, subheadline, dims.width - padding * 2);
-        const subLineHeight = txt.subheadlineSize * 1.4;
+        // Use subheadline-specific padding if set, otherwise use headline padding
+        const subPaddingPercent = txt.subheadlinePadding ?? paddingPercent;
+        const subPadding = dims.width * (subPaddingPercent / 100);
+        const lines = wrapText(context, subheadline, dims.width - subPadding * 2);
+        // Use configurable line height (default 140%)
+        const subLineHeightPercent = txt.subheadlineLineHeight ?? 140;
+        const subLineHeight = txt.subheadlineSize * (subLineHeightPercent / 100);
 
         // Subheadline starts after headline with gap determined by headline lineHeight
         // For bottom position, switch to 'top' baseline so subheadline draws downward
