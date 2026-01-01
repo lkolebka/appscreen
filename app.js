@@ -68,6 +68,7 @@ const state = {
             position: 'top',
             offsetY: 12,
             lineHeight: 110,
+            textPadding: 8,
             subheadlineEnabled: false,
             subheadlines: { en: '' },
             subheadlineLanguages: ['en'],
@@ -1314,6 +1315,7 @@ function resetStateToDefaults() {
             position: 'top',
             offsetY: 12,
             lineHeight: 110,
+            textPadding: 8,
             subheadlines: { en: '' },
             subheadlineLanguages: ['en'],
             currentSubheadlineLang: 'en',
@@ -1511,6 +1513,8 @@ function syncUIWithState() {
     document.getElementById('text-offset-y-value').textContent = formatValue(txt.offsetY) + '%';
     document.getElementById('line-height').value = txt.lineHeight;
     document.getElementById('line-height-value').textContent = formatValue(txt.lineHeight) + '%';
+    document.getElementById('text-padding').value = txt.textPadding ?? 8;
+    document.getElementById('text-padding-value').textContent = formatValue(txt.textPadding ?? 8) + '%';
     const currentSubheadline = txt.subheadlines ? (txt.subheadlines[txt.currentSubheadlineLang || 'en'] || '') : (txt.subheadline || '');
     document.getElementById('subheadline-text').value = currentSubheadline;
     document.getElementById('subheadline-font').value = txt.subheadlineFont || txt.headlineFont;
@@ -2395,6 +2399,12 @@ function setupEventListeners() {
     document.getElementById('line-height').addEventListener('input', (e) => {
         setTextValue('lineHeight', parseInt(e.target.value));
         document.getElementById('line-height-value').textContent = formatValue(e.target.value) + '%';
+        updateCanvas();
+    });
+
+    document.getElementById('text-padding').addEventListener('input', (e) => {
+        setTextValue('textPadding', parseInt(e.target.value));
+        document.getElementById('text-padding-value').textContent = formatValue(e.target.value) + '%';
         updateCanvas();
     });
 
@@ -3831,6 +3841,8 @@ function updateTextUI(text) {
     document.getElementById('text-offset-y-value').textContent = formatValue(text.offsetY) + '%';
     document.getElementById('line-height').value = text.lineHeight;
     document.getElementById('line-height-value').textContent = formatValue(text.lineHeight) + '%';
+    document.getElementById('text-padding').value = text.textPadding ?? 8;
+    document.getElementById('text-padding-value').textContent = formatValue(text.textPadding ?? 8) + '%';
     document.getElementById('subheadline-text').value = text.subheadline || '';
     document.getElementById('subheadline-font').value = text.subheadlineFont || text.headlineFont;
     document.getElementById('subheadline-size').value = text.subheadlineSize;
@@ -5056,7 +5068,9 @@ function drawTextToContext(context, dims, txt) {
 
     if (!headline && !subheadline) return;
 
-    const padding = dims.width * 0.08;
+    // Use configurable text padding (default 8% for backwards compatibility)
+    const paddingPercent = txt.textPadding ?? 8;
+    const padding = dims.width * (paddingPercent / 100);
     const textY = txt.position === 'top'
         ? dims.height * (txt.offsetY / 100)
         : dims.height * (1 - txt.offsetY / 100);
@@ -5364,8 +5378,10 @@ function drawText() {
 
     if (!headline && !subheadline) return;
 
-    const padding = dims.width * 0.08;
-    const textY = text.position === 'top' 
+    // Use configurable text padding (default 8% for backwards compatibility)
+    const paddingPercent = text.textPadding ?? 8;
+    const padding = dims.width * (paddingPercent / 100);
+    const textY = text.position === 'top'
         ? dims.height * (text.offsetY / 100)
         : dims.height * (1 - text.offsetY / 100);
 
