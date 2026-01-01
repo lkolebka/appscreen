@@ -764,6 +764,7 @@ input[type="range"]::-webkit-slider-thumb {
     background-position: center center;
     overflow: hidden;
     position: relative;
+    cursor: grab;
 }
 
 .preview-strip {
@@ -884,11 +885,7 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--text-primary);
 }
 
-.canvas-area.zoomed {
-    cursor: grab;
-}
-
-.canvas-area.zoomed:active {
+.canvas-area.dragging {
     cursor: grabbing;
 }
 

@@ -860,6 +860,54 @@ canvasArea.addEventListener('wheel', (e) => {
     }
 }, { passive: false });
 
+// Click and drag to pan
+let isDraggingCanvas = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragStartPanX = 0;
+let dragStartPanY = 0;
+
+canvasArea.addEventListener('mousedown', (e) => {
+    // Only start drag on left mouse button and on the canvas area itself
+    if (e.button !== 0) return;
+
+    // Don't start drag if clicking on controls or side previews
+    if (e.target.closest('.zoom-controls') || e.target.closest('.side-preview')) return;
+
+    isDraggingCanvas = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    dragStartPanX = viewport.panX;
+    dragStartPanY = viewport.panY;
+    canvasArea.classList.add('dragging');
+    e.preventDefault();
+});
+
+canvasArea.addEventListener('mousemove', (e) => {
+    if (!isDraggingCanvas) return;
+
+    const deltaX = e.clientX - dragStartX;
+    const deltaY = e.clientY - dragStartY;
+
+    viewport.panX = dragStartPanX + deltaX;
+    viewport.panY = dragStartPanY + deltaY;
+    applyViewportTransform();
+});
+
+canvasArea.addEventListener('mouseup', () => {
+    if (isDraggingCanvas) {
+        isDraggingCanvas = false;
+        canvasArea.classList.remove('dragging');
+    }
+});
+
+canvasArea.addEventListener('mouseleave', () => {
+    if (isDraggingCanvas) {
+        isDraggingCanvas = false;
+        canvasArea.classList.remove('dragging');
+    }
+});
+
 previewStrip.addEventListener('wheel', (e) => {
     // Only handle horizontal scrolling (two-finger swipe on trackpad)
     if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
