@@ -1120,7 +1120,12 @@ function initSync() {
 
 // Save state to IndexedDB for current project
 function saveState() {
-    if (!db) return;
+    if (!db) {
+        console.warn('[saveState] Database not initialized');
+        return;
+    }
+
+    console.log('[saveState] Saving project:', currentProjectId, 'Screenshots:', state.screenshots.length);
 
     // Convert screenshots to base64 for storage, including per-screenshot settings and localized images
     const screenshotsToSave = state.screenshots.map(s => {
@@ -1138,12 +1143,20 @@ function saveState() {
             });
         }
 
+        // Sanitize background to avoid saving Image objects
+        const backgroundToSave = { ...s.background };
+        if (backgroundToSave.image && backgroundToSave.image.src) {
+            // Save only the src string, not the Image object
+            backgroundToSave.imageSrc = backgroundToSave.image.src;
+        }
+        delete backgroundToSave.image; // Remove the Image object
+
         return {
             src: s.image?.src || '', // Legacy compatibility
             name: s.name,
             deviceType: s.deviceType,
             localizedImages: localizedImages,
-            background: s.background,
+            background: backgroundToSave,
             screenshot: s.screenshot,
             text: s.text,
             overrides: s.overrides
@@ -1172,24 +1185,79 @@ function saveState() {
     try {
         const transaction = db.transaction([PROJECTS_STORE], 'readwrite');
         const store = transaction.objectStore(PROJECTS_STORE);
-        store.put(stateToSave);
+        const request = store.put(stateToSave);
+
+        request.onsuccess = () => {
+            console.log('[saveState] ✓ Saved successfully');
+        };
+        request.onerror = (e) => {
+            console.error('[saveState] ✗ Save failed:', e.target.error);
+        };
+        transaction.onerror = (e) => {
+            console.error('[saveState] ✗ Transaction failed:', e.target.error);
+        };
     } catch (e) {
-        console.error('Error saving state:', e);
+        console.error('[saveState] ✗ Error:', e);
     }
+}
+
+// Debug helper - call window.debugStorage() in console to inspect
+window.debugStorage = async function() {
+    console.group('🔍 Storage Debug');
+    console.log('Current Project ID:', currentProjectId);
+    console.log('Database:', db ? 'initialized' : 'NOT INITIALIZED');
+    console.log('Projects:', projects);
+    console.log('Current State:', {
+        screenshots: state.screenshots.length,
+        selectedIndex: state.selectedIndex,
+        outputDevice: state.outputDevice,
+        currentLanguage: state.currentLanguage
+    });
+
+    if (db) {
+        const transaction = db.transaction([PROJECTS_STORE], 'readonly');
+        const store = transaction.objectStore(PROJECTS_STORE);
+        const request = store.get(currentProjectId);
+        request.onsuccess = () => {
+            console.log('Saved in IndexedDB:', request.result);
+            console.groupEnd();
+        };
+    } else {
+        console.groupEnd();
+    }
+};
+
+// Helper to restore background with Image object from saved imageSrc
+function restoreBackground(savedBackground, fallback) {
+    const bg = savedBackground ? { ...savedBackground } : JSON.parse(JSON.stringify(fallback));
+    // Restore Image object from imageSrc if it exists
+    if (bg.imageSrc) {
+        const img = new Image();
+        img.src = bg.imageSrc;
+        bg.image = img;
+        delete bg.imageSrc;
+    }
+    return bg;
 }
 
 // Load state from IndexedDB for current project
 function loadState() {
-    if (!db) return Promise.resolve();
-    
+    if (!db) {
+        console.warn('[loadState] Database not initialized');
+        return Promise.resolve();
+    }
+
+    console.log('[loadState] Loading project:', currentProjectId);
+
     return new Promise((resolve) => {
         try {
             const transaction = db.transaction([PROJECTS_STORE], 'readonly');
             const store = transaction.objectStore(PROJECTS_STORE);
             const request = store.get(currentProjectId);
-            
+
             request.onsuccess = () => {
                 const parsed = request.result;
+                console.log('[loadState] Loaded data:', parsed ? `${parsed.screenshots?.length || 0} screenshots` : 'null');
                 if (parsed) {
                     // Check if this is an old-style project (no per-screenshot settings)
                     const isOldFormat = !parsed.defaults && (parsed.background || parsed.screenshot || parsed.text);
@@ -1261,7 +1329,7 @@ function loadState() {
                                                     name: s.name,
                                                     deviceType: s.deviceType,
                                                     localizedImages: localizedImages,
-                                                    background: s.background || JSON.parse(JSON.stringify(migratedBackground)),
+                                                    background: restoreBackground(s.background, migratedBackground),
                                                     screenshot: s.screenshot || JSON.parse(JSON.stringify(migratedScreenshot)),
                                                     text: s.text || JSON.parse(JSON.stringify(migratedText)),
                                                     overrides: s.overrides || {}
@@ -1300,7 +1368,7 @@ function loadState() {
                                         name: s.name,
                                         deviceType: s.deviceType,
                                         localizedImages: localizedImages,
-                                        background: s.background || JSON.parse(JSON.stringify(migratedBackground)),
+                                        background: restoreBackground(s.background, migratedBackground),
                                         screenshot: s.screenshot || JSON.parse(JSON.stringify(migratedScreenshot)),
                                         text: s.text || JSON.parse(JSON.stringify(migratedText)),
                                         overrides: s.overrides || {}
@@ -4554,9 +4622,11 @@ function transferStyle(sourceIndex, targetIndex) {
 
     // Deep copy background settings
     target.background = JSON.parse(JSON.stringify(source.background));
-    // Handle background image separately (not JSON serializable)
-    if (source.background.image) {
-        target.background.image = source.background.image;
+    // Handle background image separately (clone the Image object properly)
+    if (source.background.image && source.background.image.src) {
+        const newImg = new Image();
+        newImg.src = source.background.image.src;
+        target.background.image = newImg;
     }
 
     // Deep copy screenshot settings
@@ -4603,9 +4673,11 @@ function applyStyleToAll() {
 
         // Deep copy background settings
         target.background = JSON.parse(JSON.stringify(source.background));
-        // Handle background image separately (not JSON serializable)
-        if (source.background.image) {
-            target.background.image = source.background.image;
+        // Handle background image separately (clone the Image object properly)
+        if (source.background.image && source.background.image.src) {
+            const newImg = new Image();
+            newImg.src = source.background.image.src;
+            target.background.image = newImg;
         }
 
         // Deep copy screenshot settings
