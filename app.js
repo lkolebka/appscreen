@@ -2775,6 +2775,7 @@ function setupEventListeners() {
     // Export buttons
     document.getElementById('export-current').addEventListener('click', exportCurrent);
     document.getElementById('export-all').addEventListener('click', exportAll);
+    document.getElementById('export-ipad').addEventListener('click', exportToiPad);
 
     // Position presets
     document.querySelectorAll('.position-preset').forEach(btn => {
@@ -5746,6 +5747,93 @@ function exportCurrent() {
     link.click();
 }
 
+// Export current screenshot extended to iPad dimensions (2064x2752)
+// Fills extra space by sampling border pixels from left and right edges
+function exportToiPad() {
+    if (state.screenshots.length === 0) {
+        alert('Please upload a screenshot first');
+        return;
+    }
+
+    // Ensure canvas is up-to-date
+    updateCanvas();
+
+    // Generate iPad canvas using shared helper
+    const iPadCanvas = generateiPadCanvas(canvas);
+
+    // Export the iPad canvas
+    const link = document.createElement('a');
+    link.download = `screenshot-${state.selectedIndex + 1}-ipad.png`;
+    link.href = iPadCanvas.toDataURL('image/png');
+    link.click();
+}
+
+// Generate iPad-sized canvas from source canvas (extends background using edge pixels)
+function generateiPadCanvas(sourceCanvas) {
+    const iPadWidth = 2064;
+    const iPadHeight = 2752;
+
+    const sourceWidth = sourceCanvas.width;
+    const sourceHeight = sourceCanvas.height;
+
+    // Create iPad-sized canvas
+    const iPadCanvas = document.createElement('canvas');
+    iPadCanvas.width = iPadWidth;
+    iPadCanvas.height = iPadHeight;
+    const iPadCtx = iPadCanvas.getContext('2d');
+
+    // Calculate scaling to fit height (maintain aspect ratio)
+    const scale = iPadHeight / sourceHeight;
+    // Round to integers to avoid subpixel gaps
+    const scaledWidth = Math.round(sourceWidth * scale);
+    const scaledHeight = iPadHeight;
+
+    // Center position for the scaled source (round to avoid gaps)
+    const offsetX = Math.floor((iPadWidth - scaledWidth) / 2);
+    const rightEdgeX = offsetX + scaledWidth;
+
+    // Sample border colors from the source canvas
+    const sourceCtx = sourceCanvas.getContext('2d');
+
+    // Sample left edge - get color from leftmost column
+    const leftSample = sourceCtx.getImageData(0, 0, 1, sourceHeight);
+    const leftColors = leftSample.data;
+
+    // Sample right edge - get color from rightmost column
+    const rightSample = sourceCtx.getImageData(sourceWidth - 1, 0, 1, sourceHeight);
+    const rightColors = rightSample.data;
+
+    // Fill extensions with sampled colors (row by row)
+    // Extend slightly into the image area (+2px) to prevent any visible seam
+    if (offsetX > 0) {
+        for (let y = 0; y < iPadHeight; y++) {
+            const sourceY = Math.floor(y / scale);
+            const clampedY = Math.min(sourceY, sourceHeight - 1);
+            const colorIndex = clampedY * 4;
+
+            // Left side - use left edge colors (extend 2px into image area)
+            const leftR = leftColors[colorIndex];
+            const leftG = leftColors[colorIndex + 1];
+            const leftB = leftColors[colorIndex + 2];
+            iPadCtx.fillStyle = `rgb(${leftR}, ${leftG}, ${leftB})`;
+            iPadCtx.fillRect(0, y, offsetX + 2, 1);
+
+            // Right side - use right edge colors (extend 2px into image area)
+            const rightR = rightColors[colorIndex];
+            const rightG = rightColors[colorIndex + 1];
+            const rightB = rightColors[colorIndex + 2];
+            iPadCtx.fillStyle = `rgb(${rightR}, ${rightG}, ${rightB})`;
+            iPadCtx.fillRect(rightEdgeX - 2, y, iPadWidth - rightEdgeX + 2, 1);
+        }
+    }
+
+    // Draw the scaled source canvas in the center (on top of the extended background)
+    iPadCtx.drawImage(sourceCanvas, 0, 0, sourceWidth, sourceHeight,
+                      offsetX, 0, scaledWidth, scaledHeight);
+
+    return iPadCanvas;
+}
+
 async function exportAll() {
     if (state.screenshots.length === 0) {
         alert('Please upload screenshots first');
@@ -5796,6 +5884,9 @@ async function exportAllForLanguage(lang) {
     const zip = new JSZip();
     const total = state.screenshots.length;
 
+    // Check if iPad format is requested
+    const exportiPad = document.getElementById('export-ipad-format')?.checked || false;
+
     // Show progress
     const langName = languageNames[lang] || lang.toUpperCase();
     showExportProgress('Exporting...', `Preparing ${langName} screenshots`, 0);
@@ -5828,6 +5919,14 @@ async function exportAllForLanguage(lang) {
         const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
 
         zip.file(`screenshot-${i + 1}.png`, base64Data, { base64: true });
+
+        // Also export iPad version if checkbox is checked
+        if (exportiPad) {
+            const iPadCanvas = generateiPadCanvas(canvas);
+            const iPadDataUrl = iPadCanvas.toDataURL('image/png');
+            const iPadBase64Data = iPadDataUrl.replace(/^data:image\/png;base64,/, '');
+            zip.file(`ipad/screenshot-${i + 1}.png`, iPadBase64Data, { base64: true });
+        }
     }
 
     // Restore original settings
@@ -5859,6 +5958,9 @@ async function exportAllLanguages() {
     const originalIndex = state.selectedIndex;
     const originalLang = state.currentLanguage;
     const zip = new JSZip();
+
+    // Check if iPad format is requested
+    const exportiPad = document.getElementById('export-ipad-format')?.checked || false;
 
     const totalLangs = state.projectLanguages.length;
     const totalScreenshots = state.screenshots.length;
@@ -5901,6 +6003,14 @@ async function exportAllLanguages() {
 
             // Use language code as folder name
             zip.file(`${lang}/screenshot-${i + 1}.png`, base64Data, { base64: true });
+
+            // Also export iPad version if checkbox is checked
+            if (exportiPad) {
+                const iPadCanvas = generateiPadCanvas(canvas);
+                const iPadDataUrl = iPadCanvas.toDataURL('image/png');
+                const iPadBase64Data = iPadDataUrl.replace(/^data:image\/png;base64,/, '');
+                zip.file(`${lang}-ipad/screenshot-${i + 1}.png`, iPadBase64Data, { base64: true });
+            }
         }
     }
 

@@ -223,6 +223,12 @@
                                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
                             </svg>
                         </button>
+                        <button class="export-btn secondary" id="export-ipad" title="Export as iPad (2064×2752) - extends background">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+                                <line x1="12" y1="18" x2="12" y2="18"/>
+                            </svg>
+                        </button>
                     </div>
                     <button class="export-btn export-all-btn" id="export-all" title="Export all screenshots as ZIP">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1373,6 +1379,17 @@
                     <span class="export-option-desc">Separate folder per language</span>
                 </button>
             </div>
+
+            <label class="export-ipad-option">
+                <input type="checkbox" id="export-ipad-format">
+                <span class="export-ipad-label">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12" y2="18"/>
+                    </svg>
+                    Also export in iPad format (2064×2752)
+                </span>
+            </label>
 
             <div class="modal-buttons">
                 <button class="modal-btn modal-btn-cancel" id="export-language-modal-cancel">Cancel</button>
