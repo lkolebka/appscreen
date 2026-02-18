@@ -5612,9 +5612,9 @@ function drawText() {
         });
 
         // Track where subheadline should start (below the bottom edge of headline)
-        // The gap between headline and subheadline should be (lineHeight - fontSize)
-        // This is the "extra" spacing beyond the text itself
-        const gap = lineHeight - text.headlineSize;
+        // Use configurable gap (default 20% of headline size)
+        const gapPercent = text.subheadlineGap ?? 20;
+        const gap = text.headlineSize * (gapPercent / 100);
         if (text.position === 'top') {
             // For top: lastLineY is top of last line, add fontSize to get bottom, then add gap
             currentY = lastLineY + text.headlineSize + gap;
@@ -5631,8 +5631,13 @@ function drawText() {
         ctx.font = `${subFontStyle} ${subWeight} ${text.subheadlineSize}px ${text.subheadlineFont || text.headlineFont}`;
         ctx.fillStyle = hexToRgba(text.subheadlineColor, text.subheadlineOpacity / 100);
 
-        const lines = wrapText(ctx, subheadline, dims.width - padding * 2);
-        const subLineHeight = text.subheadlineSize * 1.4;
+        // Use subheadline-specific padding if set, otherwise use headline padding
+        const subPaddingPercent = text.subheadlinePadding ?? paddingPercent;
+        const subPadding = dims.width * (subPaddingPercent / 100);
+        const lines = wrapText(ctx, subheadline, dims.width - subPadding * 2);
+        // Use configurable line height (default 140%)
+        const subLineHeightPercent = text.subheadlineLineHeight ?? 140;
+        const subLineHeight = text.subheadlineSize * (subLineHeightPercent / 100);
 
         // Subheadline starts after headline with gap determined by headline lineHeight
         // For bottom position, switch to 'top' baseline so subheadline draws downward
@@ -5899,8 +5904,8 @@ async function exportAllLanguages() {
             const dataUrl = canvas.toDataURL('image/png');
             const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
 
-            // Use language code as folder name
-            zip.file(`${lang}/screenshot-${i + 1}.png`, base64Data, { base64: true });
+            // Use full language name as folder name
+            zip.file(`${langName}/screenshot-${i + 1}.png`, base64Data, { base64: true });
         }
     }
 
