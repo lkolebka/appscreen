@@ -38,6 +38,17 @@ const llmProviders = {
         ],
         defaultModel: 'gemini-2.5-flash'
     },
+    deepseek: {
+        name: 'DeepSeek',
+        keyPrefix: 'sk-',
+        storageKey: 'deepseekApiKey',
+        modelStorageKey: 'deepseekModel',
+        models: [
+            { id: 'deepseek-chat', name: 'DeepSeek-V3 Chat ($)' },
+            { id: 'deepseek-reasoner', name: 'DeepSeek-R1 Reasoner ($$)' }
+        ],
+        defaultModel: 'deepseek-chat'
+    },
     ollama: {
         name: 'Ollama (Local)',
         keyPrefix: null, // No API key required
