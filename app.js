@@ -1313,6 +1313,190 @@ window.debugStorage = async function() {
     }
 };
 
+// Download a JS object as a JSON file
+function downloadJSON(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Resolve a project by id or (case-insensitive) name; defaults to current project
+function resolveProject(idOrName) {
+    if (!idOrName) return projects.find(p => p.id === currentProjectId) || null;
+    const lower = String(idOrName).toLowerCase();
+    return projects.find(p => p.id === idOrName)
+        || projects.find(p => p.name.toLowerCase() === lower)
+        || projects.find(p => p.name.toLowerCase().includes(lower))
+        || null;
+}
+
+// Read a stored project record from IndexedDB by id
+function readProjectRecord(projectId) {
+    return new Promise((resolve, reject) => {
+        if (!db) { reject(new Error('Database not initialized')); return; }
+        const tx = db.transaction([PROJECTS_STORE], 'readonly');
+        const req = tx.objectStore(PROJECTS_STORE).get(projectId);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+// Export full project JSON (includes images as base64). Usage: exportProjectJSON('brim iphone')
+window.exportProjectJSON = async function(idOrName) {
+    const project = resolveProject(idOrName);
+    if (!project) {
+        console.warn('Project not found. Available:', projects.map(p => p.name));
+        return;
+    }
+    const record = await readProjectRecord(project.id);
+    if (!record) {
+        console.warn('No saved record for', project.name);
+        return;
+    }
+    const payload = { project: { id: project.id, name: project.name }, data: record };
+    const safe = project.name.replace(/[^a-z0-9-_]+/gi, '_');
+    downloadJSON(payload, `${safe}_full.json`);
+    console.log('Exported full project:', project.name);
+};
+
+// Export only text content (no images). Usage: exportProjectText('brim iphone')
+window.exportProjectText = async function(idOrName) {
+    const project = resolveProject(idOrName);
+    if (!project) {
+        console.warn('Project not found. Available:', projects.map(p => p.name));
+        return;
+    }
+    const record = await readProjectRecord(project.id);
+    if (!record) {
+        console.warn('No saved record for', project.name);
+        return;
+    }
+    const screenshots = (record.screenshots || []).map((s, i) => ({
+        index: i,
+        name: s.name,
+        text: s.text || null,
+        overrides: s.overrides || null
+    }));
+    const payload = {
+        project: { id: project.id, name: project.name },
+        currentLanguage: record.currentLanguage,
+        projectLanguages: record.projectLanguages,
+        defaults: record.defaults ? { text: record.defaults.text } : null,
+        screenshots
+    };
+    const safe = project.name.replace(/[^a-z0-9-_]+/gi, '_');
+    downloadJSON(payload, `${safe}_text.json`);
+    console.log('Exported text for project:', project.name);
+};
+
+// Export text from every project in one file
+window.exportAllProjectsText = async function() {
+    const out = [];
+    for (const p of projects) {
+        const rec = await readProjectRecord(p.id);
+        if (!rec) continue;
+        out.push({
+            project: { id: p.id, name: p.name },
+            currentLanguage: rec.currentLanguage,
+            projectLanguages: rec.projectLanguages,
+            defaults: rec.defaults ? { text: rec.defaults.text } : null,
+            screenshots: (rec.screenshots || []).map((s, i) => ({
+                index: i, name: s.name, text: s.text || null, overrides: s.overrides || null
+            }))
+        });
+    }
+    downloadJSON(out, 'all_projects_text.json');
+    console.log('Exported text for', out.length, 'projects');
+};
+
+// List projects in console. Usage: listProjects()
+window.listProjects = function() {
+    console.table(projects.map(p => ({ id: p.id, name: p.name, screenshots: p.screenshotCount || 0 })));
+};
+
+// --- Project text modal ---
+function setProjectTextStatus(message, kind) {
+    const el = document.getElementById('project-text-status');
+    if (!el) return;
+    el.textContent = message || '';
+    el.classList.remove('success', 'error', 'info');
+    if (kind) el.classList.add(kind);
+}
+
+function openProjectTextModal() {
+    const project = projects.find(p => p.id === currentProjectId);
+    const desc = document.getElementById('project-text-download-desc');
+    if (desc && project) {
+        const count = state.screenshots.length;
+        desc.textContent = `${project.name} · ${count} screenshot${count === 1 ? '' : 's'}`;
+    }
+    setProjectTextStatus('', null);
+    document.getElementById('project-text-modal').classList.add('visible');
+}
+
+function closeProjectTextModal() {
+    document.getElementById('project-text-modal').classList.remove('visible');
+}
+
+// Apply an uploaded text JSON to the current project's state and persist.
+// Accepts either the format produced by exportProjectText (preferred) or
+// a bare array of screenshot text entries.
+function applyProjectTextImport(parsed) {
+    const entries = Array.isArray(parsed)
+        ? parsed
+        : (parsed && Array.isArray(parsed.screenshots) ? parsed.screenshots : null);
+    if (!entries) {
+        throw new Error('JSON does not contain a screenshots array');
+    }
+
+    let matched = 0;
+    let skipped = 0;
+
+    entries.forEach((entry, i) => {
+        if (!entry || typeof entry !== 'object') { skipped++; return; }
+        let target = null;
+        if (entry.name) {
+            target = state.screenshots.find(s => s.name === entry.name);
+        }
+        if (!target) {
+            const idx = (typeof entry.index === 'number') ? entry.index : i;
+            target = state.screenshots[idx] || null;
+        }
+        if (!target) { skipped++; return; }
+        if (entry.text && typeof entry.text === 'object') {
+            target.text = JSON.parse(JSON.stringify(entry.text));
+        }
+        if (entry.overrides !== undefined) {
+            target.overrides = entry.overrides
+                ? JSON.parse(JSON.stringify(entry.overrides))
+                : null;
+        }
+        matched++;
+    });
+
+    if (parsed && parsed.defaults && parsed.defaults.text && typeof parsed.defaults.text === 'object') {
+        state.defaults.text = JSON.parse(JSON.stringify(parsed.defaults.text));
+    }
+    if (parsed && typeof parsed.currentLanguage === 'string') {
+        state.currentLanguage = parsed.currentLanguage;
+    }
+    if (parsed && Array.isArray(parsed.projectLanguages)) {
+        state.projectLanguages = parsed.projectLanguages.slice();
+    }
+
+    if (typeof syncUIWithState === 'function') syncUIWithState();
+    if (typeof updateCanvas === 'function') updateCanvas();
+    if (typeof saveState === 'function') saveState();
+
+    return { matched, skipped };
+}
+
 // Helper to restore background with Image object from saved imageSrc
 function restoreBackground(savedBackground, fallback) {
     const bg = savedBackground ? { ...savedBackground } : JSON.parse(JSON.stringify(fallback));
@@ -1978,6 +2162,49 @@ function setupEventListeners() {
         document.getElementById('delete-project-message').textContent = 
             `Are you sure you want to delete "${project ? project.name : 'this project'}"? This cannot be undone.`;
         document.getElementById('delete-project-modal').classList.add('visible');
+    });
+
+    document.getElementById('export-project-text-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openProjectTextModal();
+    });
+
+    document.getElementById('project-text-download').addEventListener('click', async () => {
+        try {
+            await window.exportProjectText(currentProjectId);
+            setProjectTextStatus('Download started.', 'success');
+        } catch (err) {
+            console.error('[project-text] download failed:', err);
+            setProjectTextStatus('Download failed: ' + (err && err.message ? err.message : err), 'error');
+        }
+    });
+
+    document.getElementById('project-text-upload-trigger').addEventListener('click', () => {
+        document.getElementById('project-text-file-input').click();
+    });
+
+    document.getElementById('project-text-file-input').addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        try {
+            const text = await file.text();
+            const parsed = JSON.parse(text);
+            const result = applyProjectTextImport(parsed);
+            setProjectTextStatus(
+                `Imported text for ${result.matched} screenshot${result.matched === 1 ? '' : 's'}` +
+                (result.skipped ? ` (${result.skipped} skipped — no match)` : '') + '.',
+                'success'
+            );
+        } catch (err) {
+            console.error('[project-text] upload failed:', err);
+            setProjectTextStatus('Upload failed: ' + (err && err.message ? err.message : err), 'error');
+        }
+    });
+
+    document.getElementById('project-text-close').addEventListener('click', closeProjectTextModal);
+    document.getElementById('project-text-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'project-text-modal') closeProjectTextModal();
     });
 
     // Project modal buttons

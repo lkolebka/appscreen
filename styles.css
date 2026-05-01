@@ -790,21 +790,14 @@ input[type="range"]::-webkit-slider-thumb {
     overflow: hidden;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
     cursor: pointer;
-    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
-    opacity: 0.5;
-    transform: scale(0.85);
+    transition: box-shadow 0.2s ease, outline-color 0.2s ease;
     flex-shrink: 0;
-}
-
-.filmstrip-item:hover {
-    opacity: 0.75;
-    transform: scale(0.88);
+    outline: 3px solid transparent;
+    outline-offset: 2px;
 }
 
 .filmstrip-item.selected {
-    opacity: 1;
-    transform: scale(1);
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+    outline-color: var(--accent);
     cursor: default;
 }
 
@@ -1242,6 +1235,105 @@ input[type="range"]::-webkit-slider-thumb {
 
 .modal-icon-info svg {
     color: var(--accent);
+}
+
+/* Project text import/export modal */
+.project-text-modal {
+    max-width: 460px;
+    text-align: left;
+}
+
+.project-text-modal .modal-icon,
+.project-text-modal .modal-title,
+.project-text-modal .modal-message {
+    text-align: center;
+}
+
+.project-text-modal .modal-icon {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.project-text-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.project-text-action {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    color: var(--text-primary);
+}
+
+.project-text-action:hover {
+    background: var(--border-color);
+    border-color: var(--accent);
+}
+
+.project-text-action-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 132, 255, 0.15);
+    border-radius: 10px;
+    color: var(--accent);
+}
+
+.project-text-action-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.project-text-action-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.project-text-action-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.project-text-action-desc {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+}
+
+.project-text-status {
+    min-height: 18px;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-bottom: 16px;
+    padding: 0 4px;
+}
+
+.project-text-status.success {
+    color: #34c759;
+}
+
+.project-text-status.error {
+    color: #ff453a;
+}
+
+.project-text-status.info {
+    color: var(--text-secondary);
 }
 
 /* Translate modal styles */

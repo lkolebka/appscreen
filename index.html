@@ -114,6 +114,13 @@
                                 <path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
                             </svg>
                         </button>
+                        <button class="project-btn" id="export-project-text-btn" title="Export project text as JSON">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                                <polyline points="7,10 12,15 17,10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                        </button>
                         <button class="project-btn danger" id="delete-project-btn" title="Delete Project">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3,6 5,6 21,6"/>
@@ -1492,6 +1499,59 @@
                 <div class="export-progress-fill" id="export-progress-fill"></div>
             </div>
             <p class="export-progress-detail" id="export-progress-detail"></p>
+        </div>
+    </div>
+
+    <!-- Project Text Import/Export Modal -->
+    <div class="modal-overlay" id="project-text-modal">
+        <div class="modal project-text-modal">
+            <div class="modal-icon modal-icon-info">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+            </div>
+            <h3 class="modal-title">Project Text</h3>
+            <p class="modal-message">Download the current project's text (headlines, subheadlines, per-screenshot overrides) as JSON, or upload a JSON file to replace the project's text.</p>
+
+            <div class="project-text-actions">
+                <button class="project-text-action" id="project-text-download">
+                    <div class="project-text-action-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                    </div>
+                    <div class="project-text-action-body">
+                        <div class="project-text-action-title">Download JSON</div>
+                        <div class="project-text-action-desc" id="project-text-download-desc">Save current project text to a file</div>
+                    </div>
+                </button>
+
+                <button class="project-text-action" id="project-text-upload-trigger">
+                    <div class="project-text-action-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </div>
+                    <div class="project-text-action-body">
+                        <div class="project-text-action-title">Upload JSON</div>
+                        <div class="project-text-action-desc">Replace project text with an uploaded file</div>
+                    </div>
+                </button>
+                <input type="file" id="project-text-file-input" accept="application/json,.json" hidden>
+            </div>
+
+            <div class="project-text-status" id="project-text-status"></div>
+
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" id="project-text-close">Close</button>
+            </div>
         </div>
     </div>
 
